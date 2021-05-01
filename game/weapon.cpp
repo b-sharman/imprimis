@@ -553,7 +553,7 @@ namespace game
         playsound(Sound_PulseExplode, &v);
         particle_fireball(v, 1.15f*attacks[atk].exprad, Part_PulseBurst, static_cast<int>(attacks[atk].exprad*20), 0x50CFE5, 4.0f);
         vec debrisorigin = vec(v).sub(vec(vel).mul(5));
-        adddynlight(safe ? v : debrisorigin, 2*attacks[atk].exprad, vec(1.0f, 3.0f, 4.0f), 350, 40, 0, attacks[atk].exprad/2, vec(0.5f, 1.5f, 2.0f));
+        adddynlight(safe ? v : debrisorigin, 2*attacks[atk].exprad, vec(1.0f, 3.0f, 4.0f), 350, 40, 0, attacks[atk].exprad, vec(0.5f, 1.5f, 2.0f));
 
         if(!local)
         {
@@ -746,14 +746,6 @@ namespace game
                             continue;
                         }
                     }
-                    switch(attacks[p.atk].worldfx)
-                    {
-                        case 1:
-                        {
-                            explodecubes(static_cast<ivec>(p.o), 8);
-                            break;
-                        }
-                    }
                     projsplash(p, v, nullptr);
                     exploded = true;
                 }
@@ -773,6 +765,14 @@ namespace game
             }
             if(exploded)
             {
+                switch(attacks[p.atk].worldfx)
+                {
+                    case 1:
+                    {
+                        explodecubes(static_cast<ivec>(p.o), 4);
+                        break;
+                    }
+                }
                 if(p.local)
                 {
                     addmsg(NetMsg_Explode, "rci3iv", p.owner, lastmillis-maptime, p.atk, p.id-maptime,
@@ -982,6 +982,10 @@ namespace game
             atk = guns[gun].attacks[act];
         d->lastaction = lastmillis;
         d->lastattack = atk;
+        if(d->heat[gun] > attacks[atk].maxheat)
+        {
+            return;
+        }
         if(!d->ammo[gun])
         {
             if(d==player1)
@@ -1063,6 +1067,7 @@ namespace game
         {
             d->gunwait += static_cast<int>(d->gunwait*(((101-d->skill)+randomint(111-d->skill))/100.f));
         }
+        d->heat[gun] += attacks[atk].heat;
         d->totalshots += attacks[atk].damage*attacks[atk].rays;
     }
 
@@ -1118,11 +1123,34 @@ namespace game
             rendermodel(mdl, Anim_Mapmodel | Anim_Loop, pos, yaw, pitch, 0, cull, nullptr, nullptr, 0, 0, fade);
         }
     }
-
     void removeweapons(gameent *d)
     {
         removebouncers(d);
         removeprojectiles(d);
+    }
+
+    void updateheat()
+    {
+        static int lasttime = 0;
+        int heatticktime = 50;
+        if(lastmillis - heatticktime >= lasttime)
+        {
+            lasttime = lastmillis;
+            for(int i = 0; i<Gun_NumGuns; i++)
+            {
+                for(int j = 0; j < players.length(); j++)
+                {
+                    if(players[j]->ai)
+                    {
+                        players[j]->heat[i] -= 5;
+                    }
+                }
+                if(player1->heat[i] > 0)
+                {
+                    player1->heat[i] -= 5;
+                }
+            }
+        }
     }
 
     void updateweapons(int curtime)
@@ -1132,6 +1160,7 @@ namespace game
         {
             shoot(player1, worldpos); // only shoot when connected to server
         }
+        updateheat();
         updatebouncers(curtime); // need to do this after the player shoots so bouncers don't end up inside player's BB next frame
     }
 
