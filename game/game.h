@@ -174,7 +174,7 @@ const struct gamemodeinfo
 {
     { "demo", "Demo", Mode_Demo | Mode_LocalOnly, NULL},
     { "edit", "Edit", Mode_Edit | Mode_All, "Cooperative Editing:\nEdit maps with multiple players simultaneously." },
-    { "tdm", "TDM", Mode_Team | Mode_All, "Team Deathmatch: fight for the most kills" },
+    { "tdm", "TDM", Mode_Team | Mode_All, "Team Deathmatch: fight for control over the map" },
 };
 
 //these are the checks for particular mechanics in particular modes
@@ -383,7 +383,7 @@ const int msgsizes[] =
     NetMsg_ExplodeFX,      4,
     NetMsg_TrySpawn,       1,
     NetMsg_SpawnState,     8,
-    NetMsg_Spawn,          3,
+    NetMsg_Spawn,          4,
     NetMsg_ForceDeath,     2,
     NetMsg_GunSelect,      2,
     NetMsg_MapChange,      0,
@@ -496,8 +496,8 @@ const struct attackinfo { int gun, action, anim, vwepanim, hudanim, sound, hudso
 //    1            2          3           4               5             6                7               8    9   10  11   12   13  14   15  16    17 18 19 20  21   22
 {
     { Gun_Rail,    Act_Shoot, Anim_Shoot, Anim_VWepShoot, Anim_GunShoot, Sound_Rail1,    Sound_Rail2,    300,  5,  20, 0,    0, 10, 1200, 1,  200,  0, 0, 0, 1,  60, 100},
-    { Gun_Pulse,   Act_Shoot, Anim_Shoot, Anim_VWepShoot, Anim_GunShoot, Sound_Pulse1,   Sound_Pulse2,   700, 15,  10, 1,  700, 50, 1024, 1, 2500, 50, 1, 0, 0, 300, 300},
-    { Gun_Eng,     Act_Shoot, Anim_Shoot, Anim_VWepShoot, Anim_GunShoot, Sound_Melee,    Sound_Melee,    500,  0,   0, 1,    0,  0,   80, 1,   10, 20, 2, 0, 1,  50, 100},
+    { Gun_Pulse,   Act_Shoot, Anim_Shoot, Anim_VWepShoot, Anim_GunShoot, Sound_Pulse1,   Sound_Pulse2,   700, 15,  10, 1,  500, 50, 1024, 1, 2500, 50, 1, 0, 0, 300, 300},
+    { Gun_Eng,     Act_Shoot, Anim_Shoot, Anim_VWepShoot, Anim_GunShoot, Sound_Melee,    Sound_Melee,    250,  0,   0, 1,    0,  0,   80, 1,   10, 20, 2, 0, 1,   1, 100},
     { Gun_Carbine, Act_Shoot, Anim_Shoot, Anim_VWepShoot, Anim_GunShoot, Sound_Carbine1, Sound_Carbine1,  90,  2, 100, 0,    0,  2,  512, 1,   50,  0, 0, 0, 1,  25, 125},
 };
 
@@ -972,6 +972,16 @@ extern void mpplacecube(selinfo &sel, int tex, bool local);
 extern void mpremip(bool local);
 extern bool mpeditvslot(int delta, int allfaces, selinfo &sel, ucharbuf &buf);
 extern void mpcalclight(bool local);
+
+extern uint getfacecorner(uint face, int num);
+
+struct facearray
+{
+    int array[8];
+};
+
+extern facearray facestoarray(cube c, int num);
+extern bool checkcubefill(cube c);
 
 // ents
 

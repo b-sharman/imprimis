@@ -485,6 +485,93 @@ namespace game
         rendermodel(parachutemodel, Anim_Mapmodel | Anim_Loop, loc, atan2(d->vel.y,d->vel.x)/RAD, 0, 0);
     }
 
+    void renderengineercursor()
+    {
+        if(player1->gunselect != Gun_Eng)
+        {
+            return; //don't render block guide for non block placing weapons
+        }
+        int d   = DIMENSION(sel.orient),
+            od  = DIMENSION(orient);
+
+        float sdist = 0,
+              wdist = 0,
+              t;
+        int entorient = 0,
+            ent = -1;
+
+        wdist = rayent(player->o, camdir, 1e16f,
+                       (editmode && showmat ? Ray_EditMat : 0)   // select cubes first
+                       | (!dragging && entediting ? Ray_Ents : 0)
+                       | Ray_SkipFirst
+                       | (passthroughcube==1 ? Ray_Pass : 0), gridsize, entorient, ent);
+
+        if(wdist >= attacks[Attack_EngShoot].range)
+        {
+            return; //upon checking range, if it is larger than the eng's max placement distance, don't bother rendering
+        }
+
+        vec w = vec(camdir).mul(wdist+0.05f).add(player->o);
+        cube *c = &lookupcube(ivec(w));
+        gridsize = 8;
+        int mag = lusize / gridsize;
+        normalizelookupcube(ivec(w));
+        if(sdist == 0 || sdist > wdist)
+        {
+            rayboxintersect(vec(lu), vec(gridsize), player->o, camdir, t=0, orient); // just getting orient
+        }
+        cur = lu;
+        cor = ivec(vec(w).mul(2).div(gridsize));
+        od = DIMENSION(orient);
+        d = DIMENSION(sel.orient);
+
+        sel.o = lu;
+        sel.s.x = sel.s.y = sel.s.z = 1;
+        sel.cx = sel.cy = 0;
+        sel.cxs = sel.cys = 2;
+        sel.grid = gridsize;
+        sel.orient = orient;
+        d = od;
+        sel.corner = (cor[R[d]]-(lu[R[d]]*2)/gridsize)+(cor[C[d]]-(lu[C[d]]*2)/gridsize)*2;
+        selchildcount = 0;
+        selchildmat = -1;
+        countselchild(worldroot, ivec(0, 0, 0), worldsize/2);
+        if(mag>=1 && selchildcount==1)
+        {
+            selchildmat = c->material;
+            if(mag>1)
+            {
+                selchildcount = -mag;
+            }
+        }
+        glDisable(GL_CULL_FACE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE);
+
+        // cursors
+
+        ldrnotextureshader->set();
+
+        boxoutline = outline!=0;
+
+        enablepolygonoffset(GL_POLYGON_OFFSET_LINE);
+
+        if(iscubesolid(*c) || checkcubefill(*c))
+        {
+            lu.add(ivec(0,0,8));
+        }
+        gle::colorub(190,190,190);
+
+        boxs3D(vec(lu), vec(lusize), 1);
+
+        disablepolygonoffset(GL_POLYGON_OFFSET_LINE);
+
+        boxoutline = false;
+
+        glDisable(GL_BLEND);
+        glEnable(GL_CULL_FACE);
+    }
+
     void rendergame()
     {
         ai::render();
@@ -556,6 +643,7 @@ namespace game
         {
             cmode->rendergame();
         }
+        renderengineercursor();
     }
 
     //============================================ hud player rendering ============================//

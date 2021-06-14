@@ -212,11 +212,11 @@ namespace game
         }
     }
 
-    clientmode *cmode = NULL;
+    clientmode *cmode = nullptr;
 
     void setclientmode()
     {
-        cmode = NULL;
+        cmode = nullptr;
     }
 
     bool senditemstoserver = false,
@@ -346,7 +346,7 @@ namespace game
                 return authkeys[i];
             }
         }
-        return NULL;
+        return nullptr;
     }
 
     VARP(autoauth, 0, 1, 1);
@@ -556,6 +556,15 @@ namespace game
         if(d)
         {
             intret(d->health);
+        }
+    });
+
+    ICOMMAND(getclientcombatclass, "i", (int *cn),
+    {
+        gameent *d = getclient(*cn);
+        if(d)
+        {
+            intret(d->combatclass);
         }
     });
 
@@ -952,12 +961,12 @@ namespace game
 
     void sendclipboard()
     {
-        uchar *outbuf = NULL;
+        uchar *outbuf = nullptr;
         int inlen = 0,
             outlen = 0;
         if(!packeditinfo(localedit, inlen, outbuf, outlen))
         {
-            outbuf = NULL;
+            outbuf = nullptr;
             inlen = outlen = 0;
         }
         packetbuf p(16 + outlen, ENET_PACKET_FLAG_RELIABLE);
@@ -1113,7 +1122,7 @@ namespace game
             case Edit_Undo:
             case Edit_Redo:
             {
-                uchar *outbuf = NULL;
+                uchar *outbuf = nullptr;
                 int inlen = 0, outlen = 0;
                 if(packundo(op, inlen, outbuf, outlen))
                 {
@@ -1124,6 +1133,22 @@ namespace game
                     delete[] outbuf;
                 }
                 break;
+            }
+        }
+        else //world edits allowed outside edit mode
+        {
+            switch(op)
+                case Edit_AddCube:
+                case Edit_DelCube:
+                {
+                    addmsg(NetMsg_EditFace + op, "ri9i4",
+                       sel.o.x, sel.o.y, sel.o.z, //1-3
+                       sel.s.x, sel.s.y, sel.s.z, //4-6
+                       sel.grid, sel.orient,      //7,8
+                       sel.cx, sel.cxs,           //9,10
+                       sel.cy, sel.cys,           //11,12
+                       sel.corner);               //13
+                    break;
             }
         }
     }
@@ -1409,7 +1434,7 @@ namespace game
     VARP(teamcolorchat, 0, 1, 1);
     const char *chatcolorname(gameent *d)
     {
-        return teamcolorchat ? teamcolorname(d, NULL) : colorname(d);
+        return teamcolorchat ? teamcolorname(d, nullptr) : colorname(d);
     }
     void toserver(char *text)
     {
@@ -1624,7 +1649,7 @@ namespace game
             memset(connectpass, 0, sizeof(connectpass));
         }
         sendstring(hash, p);
-        authkey *a = servauth[0] && autoauth ? findauthkey(servauth) : NULL;
+        authkey *a = servauth[0] && autoauth ? findauthkey(servauth) : nullptr;
         if(a)
         {
             a->lastauth = lastmillis;
@@ -1819,7 +1844,7 @@ namespace game
         {
             if(d==player1)
             {
-                getint(p);
+                getint(p); //just skip these bytes because we know the answer
             }
             else
             {
@@ -1907,7 +1932,7 @@ namespace game
                 {
                     bool val = getint(p) > 0;
                     int cn = getint(p);
-                    gameent *a = cn >= 0 ? getclient(cn) : NULL;
+                    gameent *a = cn >= 0 ? getclient(cn) : nullptr;
                     if(!demopacket)
                     {
                         gamepaused = val;
@@ -1927,7 +1952,7 @@ namespace game
                 {
                     int val = std::clamp(getint(p), 10, 1000),
                         cn = getint(p);
-                    gameent *a = cn >= 0 ? getclient(cn) : NULL;
+                    gameent *a = cn >= 0 ? getclient(cn) : nullptr;
                     if(!demopacket)
                     {
                         gamespeed = val;
@@ -2150,6 +2175,7 @@ namespace game
                     {
                         lasthit = 0;
                     }
+                    d->combatclass = getint(p);
                     checkfollow();
                     break;
                 }
@@ -2159,7 +2185,7 @@ namespace game
                     gameent *s = getclient(scn);
                     if(!s)
                     {
-                        parsestate(NULL, p);
+                        parsestate(nullptr, p);
                         break;
                     }
                     if(s->state==ClientState_Dead && s->lastpain)
@@ -2194,9 +2220,12 @@ namespace game
                     {
                         cmode->respawned(s);
                     }
-                    ai::spawned(s);
+                    if(s->ai)
+                    {
+                        s->ai->spawned(s);
+                    }
                     checkfollow();
-                    addmsg(NetMsg_Spawn, "rcii", s, s->lifesequence, s->gunselect);
+                    addmsg(NetMsg_Spawn, "rciii", s, s->lifesequence, s->gunselect, s->combatclass);
                     break;
                 }
                 case NetMsg_ShotFX:
@@ -2274,7 +2303,7 @@ namespace game
                     {
                         break;
                     }
-                    target->hitpush(damage * (target->health<=0 ? deadpush : 1), dir, NULL, atk);
+                    target->hitpush(damage * (target->health<=0 ? deadpush : 1), dir, nullptr, atk);
                     break;
                 }
                 case NetMsg_Died:
@@ -2858,7 +2887,8 @@ namespace game
                     {
                         break;
                     }
-                    ai::init(b, at, on, sk, bn, pm, col, name, team);
+                    b->ai = new ai::waypointai();
+                    b->ai->init(b, at, on, sk, bn, pm, col, name, team);
                     break;
                 }
                 case NetMsg_ServerCommand:
@@ -2953,7 +2983,7 @@ namespace game
             }
             case 1:
             {
-                parsemessages(-1, NULL, p);
+                parsemessages(-1, nullptr, p);
                 break;
             }
             case 2:

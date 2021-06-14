@@ -22,6 +22,26 @@ namespace game
  */
     ICOMMAND(getweapon, "", (), intret(player1->gunselect));
 
+
+/*getweaponheat
+ * returns the heat amount of the weapon, between 0 and 1
+ *
+ */
+    void getweaponheat()
+    {
+        int gun = player1->gunselect,
+            atk = guns[gun].attacks[1];
+        if(player1->heat[gun] > attacks[atk].maxheat) // check if weapon has overheated
+        {
+            floatret(0.99f);
+        }
+        else
+        {
+            floatret(static_cast<float>(player1->heat[gun]) / attacks[atk].maxheat);
+        }
+    }
+    COMMAND(getweaponheat, "");
+
     VAR(spawncombatclass, 0, 0, 2);
 
 /*getcombatclass
@@ -982,7 +1002,7 @@ namespace game
             atk = guns[gun].attacks[act];
         d->lastaction = lastmillis;
         d->lastattack = atk;
-        if(d->heat[gun] > attacks[atk].maxheat)
+        if(d->heat[gun] > attacks[atk].maxheat) // check if weapon has overheated
         {
             return;
         }
@@ -1039,6 +1059,11 @@ namespace game
                 if(iscubesolid(lookupcube(static_cast<ivec>(to))))
                 {
                     //note: 8 and 3 are linked magic numbers (gridpower)
+                    ivec offsetloc = static_cast<ivec>(to) + ivec(0,0,8);
+                    placecube(offsetloc,2);
+                }
+                else if(checkcubefill(lookupcube(static_cast<ivec>(to))))
+                {
                     ivec offsetloc = static_cast<ivec>(to) + ivec(0,0,8);
                     placecube(offsetloc,2);
                 }
